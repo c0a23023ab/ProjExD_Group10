@@ -292,9 +292,10 @@ def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     flag = "start" #画面推移の管理
-    bg_img = pg.image.load(f"fig/pg_bg.jpg")
+    
     while True:
         if flag =="start":
+            bg_img = pg.image.load(f"fig/pg_bg.jpg")
             txts = pg.sprite.Group()
             title_text = Fontdraw(f"kokaton defender", 80, (WIDTH // 2, 200))
             start_text = Fontdraw("start", 60, (WIDTH // 2, HEIGHT // 2))
@@ -332,6 +333,7 @@ def main():
             continue
         
         if flag =="gameover":
+            bg_img = pg.image.load(f"fig/pg_bg.jpg")
             txts = pg.sprite.Group()
             score_text = Fontdraw(f"Score:{score.value}", 80, (WIDTH // 2, 200))
             start_text = Fontdraw("start", 60, (WIDTH // 2, HEIGHT // 2))
@@ -370,6 +372,7 @@ def main():
                     break
             continue
         if flag == "game":
+            bg_img = pg.image.load(f"fig/pg_bg.jpg")
             score = Score()
             lv = Lv()
             bird = Bird(3, (325, 650))
