@@ -292,11 +292,9 @@ def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     flag = "start" #画面推移の管理
-    score = Score()
+    bg_img = pg.image.load(f"fig/pg_bg.jpg")
     while True:
         if flag =="start":
-            screen = pg.display.set_mode((WIDTH, HEIGHT))
-            bg_img = pg.image.load(f"fig/pg_bg.jpg")
             txts = pg.sprite.Group()
             title_text = Fontdraw(f"kokaton defender", 80, (WIDTH // 2, 200))
             start_text = Fontdraw("start", 60, (WIDTH // 2, HEIGHT // 2))
@@ -305,24 +303,35 @@ def main():
             img = pg.image.load("fig/9.png")
             img = pg.transform.rotozoom(img, 0, 1.0)
             img_rect = img.get_rect()
-            img_rect.left = start_text.rect.left - 50
-            img_rect.centery = start_text.rect.centery
+            selection_index = 0
+            options = [start_text]
             while True:
                 screen.blit(bg_img, [0, 0])
                 txts.draw(screen)
+                selected_text = options[selection_index % len(options)]
+                img_rect.right = selected_text.rect.left - 10
+                img_rect.centery = selected_text.rect.centery
                 screen.blit(img, img_rect)
                 pg.display.update()
-                key_lst = pg.key.get_pressed()
                 for event in pg.event.get():
                     if event.type == pg.QUIT:
                         return 0
-                if key_lst[pg.K_RETURN]:
-                    flag = "game"
-                    break  
-            continue  
+                    elif event.type == pg.KEYDOWN:
+                        if event.key == pg.K_UP:
+                            selection_index = (selection_index - 1) % len(options)
+                        elif event.key == pg.K_DOWN:
+                            selection_index = (selection_index + 1) % len(options)
+                        elif event.key == pg.K_RETURN:
+                            if selection_index % len(options)== 0:
+                                flag = "game"
+                            elif selection_index % len(options) == 1:
+                                flag = "###"
+                            break
+                if flag == "game" or flag == "start":
+                    break
+            continue
         
         if flag =="gameover":
-            screen = pg.display.set_mode((WIDTH, HEIGHT))
             txts = pg.sprite.Group()
             score_text = Fontdraw(f"Score:{score.value}", 80, (WIDTH // 2, 200))
             start_text = Fontdraw("start", 60, (WIDTH // 2, HEIGHT // 2))
@@ -335,16 +344,14 @@ def main():
             img_rect = img.get_rect()
             selection_index = 0
             options = [start_text, home_text]
-            
             while True:
                 screen.blit(bg_img, [0, 0])
                 txts.draw(screen)
-                selected_text = options[selection_index]
+                selected_text = options[selection_index % len(options)]
                 img_rect.right = selected_text.rect.left - 10
                 img_rect.centery = selected_text.rect.centery
                 screen.blit(img, img_rect)
                 pg.display.update()
-                key_lst = pg.key.get_pressed()
                 for event in pg.event.get():
                     if event.type == pg.QUIT:
                         return 0
@@ -354,22 +361,17 @@ def main():
                         elif event.key == pg.K_DOWN:
                             selection_index = (selection_index + 1) % len(options)
                         elif event.key == pg.K_RETURN:
-                            if selection_index == 0:
+                            if selection_index % len(options)== 0:
                                 flag = "game"
-                            elif selection_index == 1:
+                            elif selection_index % len(options) == 1:
                                 flag = "start"
                             break
                 if flag == "game" or flag == "start":
                     break
             continue
-        
         if flag == "game":
             score = Score()
-            screen = pg.display.set_mode((WIDTH, HEIGHT))
-            bg_img = pg.image.load(f"fig/pg_bg.jpg")
-            score = Score()
             lv = Lv()
-            
             bird = Bird(3, (325, 650))
             bombs = pg.sprite.Group()
             beams = pg.sprite.Group()
@@ -429,7 +431,6 @@ def main():
                 Beam.cooltime_update()
                 tmr += 1
                 clock.tick(50)
-            continue
 
 if __name__ == "__main__":
     pg.init()
