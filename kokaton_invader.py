@@ -244,6 +244,7 @@ class Score():
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
         screen.blit(self.image, self.rect)
 
+
 class Lv():
     """
     敵の出現頻度をレベルによって管理して表示するクラス
@@ -268,6 +269,7 @@ class Lv():
         self.image = self.font.render(f"Lv: {self.lv}", 0, self.color)
         screen.blit(self.image, self.rect)
 
+
 class Fontdraw(pg.sprite.Sprite):
     """
     文字を指定の位置に表示させるクラス
@@ -275,8 +277,9 @@ class Fontdraw(pg.sprite.Sprite):
     def __init__(self, txt: str, size: int, centerxy: tuple[int, int]):
         """
         文字をを生成する
-        引数1 obj：爆発するBombまたは敵機インスタンス
-        引数2 life：爆発時間
+        引数1 txt：表示させる文字列
+        引数2 size：大きさ
+        引数3 centerxy：文字を表示させる真ん中の位置
         """
         super().__init__()
         font = pg.font.Font(None, size)
@@ -288,16 +291,46 @@ class Fontdraw(pg.sprite.Sprite):
         pass
 
 
+class Scorerank():
+    """
+    スコアランキングを管理するクラス
+    """
+    def __init__(self, path: str):
+        """
+        ランキングが記録されたファイルを読み込む
+        ない場合は新たに作成する
+        引数1 ファイルのパス
+        """
+        self.path = path
+        try:
+            with open(path, "r", encoding="utf-8") as rf:
+                txt = rf.read()
+        except FileNotFoundError: #ファイルが見つからなかったら
+            txt = "0,0,0,0,0,0,0,0,0,0"
+            with open(path, "w", encoding="utf-8") as wf:
+                wf.write(txt)
+        self.ranklst = [int(i) for i in txt.split(",")] #int型に変換
+    
+    def update(self, score:int):
+        self.ranklst.append(score) #新しいスコアをリストに追加してソートする
+        self.ranklst.sort(reverse=True)
+        self.ranklst.pop(-1) #1つ増えた分減らす
+        with open(self.path, "w", encoding="utf-8") as wf:
+                wf.write(','.join(map(str, self.ranklst)))
+        
+
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     flag = "start" #画面推移の管理
+    rank = Scorerank("kokaton_invader_score.txt")
     while True:
         if flag =="start":
             screen = pg.display.set_mode((WIDTH, HEIGHT))
             txts = pg.sprite.Group()
             txts.add(Fontdraw(f"kokaton defender", 80, (WIDTH // 2, 200)))
             txts.add(Fontdraw("start [s]", 60, (WIDTH // 2, HEIGHT // 2)))
+            txts.add(Fontdraw("ranking [r]", 60, (WIDTH // 2, HEIGHT // 2 + 60)))
             txts.draw(screen)
             pg.display.update()
             while True:
@@ -307,12 +340,34 @@ def main():
                         return 0
                 if key_lst[pg.K_s]:
                     flag = "game"
-                    break      
+                    break
+                if key_lst[pg.K_r]:
+                    flag = "rank"
+                    break    
         
+        if flag == "rank":
+            screen = pg.display.set_mode((WIDTH, HEIGHT))
+            txts = pg.sprite.Group()
+            txts.add(Fontdraw("RANKING", 60, (WIDTH // 2, 80)))
+            txts.add(Fontdraw("home [h]", 60, (WIDTH // 2, 680)))
+            for i, score in enumerate(rank.ranklst): #ランキングの表示
+                txts.add(Fontdraw(f"No.{i+1} : {score}", 50, (WIDTH // 2, 150 + i*50 )))
+            txts.draw(screen)
+            pg.display.update()
+            while True:
+                key_lst = pg.key.get_pressed()
+                for event in pg.event.get():
+                    if event.type == pg.QUIT:
+                        return 0
+                if key_lst[pg.K_h]:
+                    flag = "start"
+                    break 
+
         if flag =="gameover":
             screen = pg.display.set_mode((WIDTH, HEIGHT))
             txts = pg.sprite.Group()
-            txts.add(Fontdraw(f"Score:{score.value}", 80, (WIDTH // 2, 200)))
+            txts.add(Fontdraw(f"Score : {score.value}", 80, (WIDTH // 2, 200))) #スコアとハイスコアの表示
+            txts.add(Fontdraw(f"HiScore : {rank.ranklst[0]}", 50, (WIDTH // 2, 250)))
             txts.add(Fontdraw("start [s]", 60, (WIDTH // 2, HEIGHT // 2)))
             txts.add(Fontdraw("home [h]", 60, (WIDTH // 2, HEIGHT // 2 + 60)))
             txts.draw(screen)
@@ -376,7 +431,7 @@ def main():
                     pg.display.update()
                     time.sleep(2)
                     flag = "gameover"
-                    screen = pg.display.set_mode((WIDTH, HEIGHT))
+                    rank.update(score.value)
                     break
 
                 bird.update(key_lst, screen)
