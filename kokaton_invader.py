@@ -173,8 +173,8 @@ class Bomb(pg.sprite.Sprite):
         """
         爆弾円Surfaceを生成する
         引数1 emy：爆弾を投下する敵機
-        引数2 bird：攻撃対象のこうかとん
-        引数3 boss：爆弾を投下するボス
+        引数2 boss：爆弾を投下するボス
+        引数3 bird：攻撃対象のこうかとん
         """
         super().__init__()
         rad = 10  # 爆弾円の半径：10
@@ -204,7 +204,7 @@ class Bomb(pg.sprite.Sprite):
 
     def update(self):
         """
-        爆弾を速度ベクトルself.vx, self.vyまたはself.bvx, self.bvyに基づき移動させる
+        爆弾を速度ベクトルself.vx, self.vyに基づき移動させる
         引数 screen：画面Surface
         """
         self.rect.move_ip(self.speed*self.vx, self.speed*self.vy)
@@ -318,17 +318,37 @@ class Boss(pg.sprite.Sprite):
         self.state = "down"  # 降下状態or停止状態
         self.interval = random.randint(50, 300)  # 爆弾投下インターバル
         self.hp = 100  # ボスの体力
+        
 
     def update(self):
         """
         ボスを速度ベクトルself.vyに基づき移動（降下）させる
         ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
-        引数 screen：画面Surface
         """
         if self.rect.centery > self.bound:
             self.vy = 0
             self.state = "stop"
         self.rect.move_ip(self.vx, self.vy)
+
+
+    def draw_hp_bar(self, screen):
+        """
+        ボスの体力バーを表示するメソッド
+        """
+        bar_width = self.rect.width
+        bar_height = 10
+        fill_width = int(bar_width * (self.hp / 100))
+        
+        pg.draw.rect(screen, (255, 0, 0), (self.rect.left - 150, self.rect.top - 20, 3 * bar_width, bar_height))
+        # 背景の赤いバー
+        pg.draw.rect(screen, (0, 255, 0), (self.rect.left - 150, self.rect.top - 20, 3 * fill_width, bar_height))
+        # HPに応じた緑色のバー
+        
+        # HPバーの描画
+        max_bar_length = self.rect.width  # HPバーの最大長さはボスの幅に合わせる
+        bar_length = max_bar_length * (self.hp / 100)  # 現在のHPに基づくバーの長さ
+        bar_height = 5  # HPバーの高さ
+
 
 
 def main():
@@ -377,6 +397,8 @@ def main():
             bg_img = pg.image.load(f"fig/pg_bg.jpg")
             score = Score()
             lv = Lv()
+            boss_spown = False  # ボスの出現判定
+            boss_span = 0
             
             bird = Bird(3, (325, 650))
             bombs = pg.sprite.Group()
@@ -387,6 +409,7 @@ def main():
 
             tmr = 0
             clock = pg.time.Clock()
+
             while True:
                 key_lst = pg.key.get_pressed()
                 for event in pg.event.get():
@@ -395,6 +418,10 @@ def main():
                     if event.type == pg.KEYDOWN and event.key == pg.K_SPACE and Beam.cooltime == 0:
                         beams.add(Beam(bird))
                 screen.blit(bg_img, [0, 0])
+                boss_score = (score.value // 100) * 100  # 現在のスコア範囲の計算
+                if boss_score != boss_span:
+                    boss_spown = False
+                    boss_span = boss_score
 
                 # if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
                 if tmr%lv.freq == 0:
@@ -404,8 +431,9 @@ def main():
                     if emy.state == "stop" and tmr%emy.interval == 0:
                         # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
                         bombs.add(Bomb(emy,None,bird))
-
-                if score.value >= 10 and not bosses and tmr%200 == 0:
+                
+                if  score.value >= 100 and not boss_spown:
+                    boss_spown = True
                     bosses.add(Boss())
 
                 for boss in bosses:
@@ -441,6 +469,9 @@ def main():
                 
                 bosses.update()
                 bosses.draw(screen)
+                for boss in bosses:
+                    boss.update()
+                    boss.draw_hp_bar(screen)
                 bird.update(key_lst, screen)
                 beams.update()
                 beams.draw(screen)
