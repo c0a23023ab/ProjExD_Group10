@@ -5,6 +5,7 @@ import sys
 import time
 import pygame as pg
 
+
 KONAMI_COMMAND = [
     pg.K_UP, pg.K_UP, pg.K_DOWN, pg.K_DOWN, 
     pg.K_LEFT, pg.K_RIGHT, pg.K_LEFT, pg.K_RIGHT,
@@ -48,6 +49,30 @@ def calc_orientation(org: pg.Rect, dst: pg.Rect) -> tuple[float, float]:
     return x_diff/norm, y_diff/norm
 
 
+def check_konami_command(key_lst):
+    """
+    コマンドが入力されたかを確認する関数
+    引数 key_lst:現在のキー入力状態リスト
+    """
+    global command_index, tmr, command1
+    if command1 == True:
+        pass
+    if command1 == False:
+        # 指定したコマンドのキーが押されているかを確認
+        if key_lst[KONAMI_COMMAND[command_index]]:
+            command_index += 1  # 次のコマンドに進む
+            print(f"Command step: {command_index}")
+            tmr = 0  # タイマーをリセット
+
+            # コマンドがすべて成功した場合
+            if command_index == len(KONAMI_COMMAND):
+                command1 = True
+                command_index = 0  # コマンドの位置をリセット
+                print("Konami Command Activated!")
+        elif tmr >= TIMEOUT:  # タイムアウト条件
+            command_index = 0  # コマンドの位置をリセット
+
+            
 class Bird(pg.sprite.Sprite):
     """
     ゲームキャラクター（こうかとん）に関するクラス
@@ -90,6 +115,7 @@ class Bird(pg.sprite.Sprite):
         self.speed = 10
         self.state = "nomal"
         self.hyper_life = 0
+
     def change_img(self, num: int, screen: pg.Surface):
         """
         こうかとん画像を切り替え，画面に転送する
@@ -167,7 +193,6 @@ class Beam(pg.sprite.Sprite):
             cls.cooltime -= 1
 
 
-
 class Enemy(pg.sprite.Sprite):
     """
     敵機に関するクラス
@@ -227,7 +252,7 @@ class Bomb(pg.sprite.Sprite):
             self.vx, self.vy = calc_orientation(boss.rect, bird.rect)  
             self.rect.centerx = boss.rect.centerx
             self.rect.centery = boss.rect.centery+boss.rect.height//2
-            self.speed = 4
+            self.speed = 10
         # 爆弾を投下するemyから見た攻撃対象のbirdの方向を計算
         else:
             self.vx, self.vy = calc_orientation(emy.rect, bird.rect)  
@@ -244,7 +269,6 @@ class Bomb(pg.sprite.Sprite):
         if check_bound(self.rect) != (True, True):
             self.kill()
         
-
 
 class Explosion(pg.sprite.Sprite):
     """
@@ -297,7 +321,8 @@ class Lv():
     """
     敵の出現頻度をレベルによって管理して表示するクラス
     """
-    lv_dic = {0:300, 1:250, 2:200, 3:150, 4:100, 5:50}
+    lv_dic = {0:300, 1:250, 2:200, 3:150, 4:100, 5:75, 6:50, 7:40, 8:30}
+
     def __init__(self):
         self.font = pg.font.Font(None, 50)
         self.color = (0, 0, 255)
@@ -311,11 +336,12 @@ class Lv():
         """
         レベルを時間経過によって変更して表示するクラス
         """
-        if self.lv <5:
+        if self.lv <8:
             self.lv = tmr//1000
         self.freq = Lv.lv_dic[self.lv]
         self.image = self.font.render(f"Lv: {self.lv}", 0, self.color)
         screen.blit(self.image, self.rect)
+
 
 class Fontdraw(pg.sprite.Sprite):
     """
@@ -336,6 +362,7 @@ class Fontdraw(pg.sprite.Sprite):
 
     def update(self):
         pass
+
 
 class MP:
     """MP（マジックポイント）を表示・管理するクラス"""
@@ -361,6 +388,7 @@ class MP:
         mp_rect.topleft = (0,670)  
         screen.blit(mp_surf, mp_rect)
 
+
 class BIGBeam(pg.sprite.Sprite):
     """強化ビーム1を管理するクラス"""
     def __init__(self, bird, big):
@@ -375,8 +403,6 @@ class BIGBeam(pg.sprite.Sprite):
         self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
         self.speed = 10
 
-
-    
     def update(self):
         """
         ビームを速度ベクトルself.vx, self.vyに基づき移動させる
@@ -385,6 +411,7 @@ class BIGBeam(pg.sprite.Sprite):
         self.rect.move_ip(self.speed*self.vx, self.speed*self.vy)
         if check_bound(self.rect) != (True, True):
             self.kill()
+
 
 class EnhancedImageBeam(pg.sprite.Sprite):
     """強化ビーム2を管理するクラス"""
@@ -400,8 +427,6 @@ class EnhancedImageBeam(pg.sprite.Sprite):
         self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
         self.speed = 10
 
-
-    
     def update(self):
         """
         ビームを速度ベクトルself.vx, self.vyに基づき移動させる
@@ -410,6 +435,7 @@ class EnhancedImageBeam(pg.sprite.Sprite):
         self.rect.move_ip(self.speed*self.vx, self.speed*self.vy)
         if check_bound(self.rect) != (True, True):
             self.kill()
+
 
 class StrongBeam(pg.sprite.Sprite):
     """MPを5消費して発射する、強力な大きいビーム"""
@@ -434,6 +460,7 @@ class StrongBeam(pg.sprite.Sprite):
         if check_bound(self.rect) != (True, True):
             self.kill()
 
+
 class Boss(pg.sprite.Sprite):
     """
     ボスに関するクラス
@@ -451,7 +478,6 @@ class Boss(pg.sprite.Sprite):
         self.interval = random.randint(50, 300)  # 爆弾投下インターバル
         self.hp = 100  # ボスの体力
         
-
     def update(self):
         """
         ボスを速度ベクトルself.vyに基づき移動（降下）させる
@@ -462,7 +488,6 @@ class Boss(pg.sprite.Sprite):
             self.state = "stop"
         self.rect.move_ip(self.vx, self.vy)
 
-
     def draw_hp_bar(self, screen):
         """
         ボスのhpを表示する
@@ -470,7 +495,6 @@ class Boss(pg.sprite.Sprite):
         bar_width = self.rect.width
         bar_height = 10
         fill_width = int(bar_width * (self.hp / 100))
-        
         pg.draw.rect(screen, (255, 0, 0), (self.rect.left - 150, self.rect.top - 20, 3 * bar_width, bar_height))
         # 背景の赤いバー
         pg.draw.rect(screen, (0, 255, 0), (self.rect.left - 150, self.rect.top - 20, 3 * fill_width, bar_height))
@@ -504,30 +528,6 @@ class Scorerank():
         with open(self.path, "w", encoding="utf-8") as wf:
                 wf.write(','.join(map(str, self.ranklst))) #,で区切られた文字列に直して書き込む
         
-
-def check_konami_command(key_lst):
-    """
-    コマンドが入力されたかを確認する関数
-    引数 key_lst:現在のキー入力状態リスト
-    """
-    global command_index, tmr, command1
-    if command1 == True:
-        pass
-    if command1 == False:
-        # 指定したコマンドのキーが押されているかを確認
-        if key_lst[KONAMI_COMMAND[command_index]]:
-            command_index += 1  # 次のコマンドに進む
-            print(f"Command step: {command_index}")
-            tmr = 0  # タイマーをリセット
-
-            # コマンドがすべて成功した場合
-            if command_index == len(KONAMI_COMMAND):
-                command1 = True
-                command_index = 0  # コマンドの位置をリセット
-                print("Konami Command Activated!")
-        elif tmr >= TIMEOUT:  # タイムアウト条件
-            command_index = 0  # コマンドの位置をリセット
-
 
 def main():
     global command1
@@ -637,6 +637,7 @@ def main():
                 if flag == "game" or flag == "start":
                     break
             continue
+
         if flag == "game":
             bg_img = pg.image.load(f"fig/pg_bg.jpg")
             score = Score()
@@ -672,24 +673,19 @@ def main():
                     if event.type == pg.KEYDOWN and event.key == pg.K_e:  # 強化ビーム発動キー "E"
                         if mp.decrease(1): 
                             # 3方向にビームを発射
-                            BIG_beams.add(BIGBeam(bird, big=80))
-                            BIG_beams.add(BIGBeam(bird, big=90))
-                            BIG_beams.add(BIGBeam(bird, big=100))
+                            for i in range(80, 101, 10):
+                                BIG_beams.add(BIGBeam(bird, big=i))
 
                     if event.type == pg.KEYDOWN and event.key == pg.K_w:  # 強化ビーム発動キー "W"
                         if mp.decrease(5): 
                             # 5方向にビームを発射
-                            enhanced_image_beams.add(EnhancedImageBeam(bird, angle_offset=70))
-                            enhanced_image_beams.add(EnhancedImageBeam(bird, angle_offset=80))
-                            enhanced_image_beams.add(EnhancedImageBeam(bird, angle_offset=90))
-                            enhanced_image_beams.add(EnhancedImageBeam(bird, angle_offset=100))
-                            enhanced_image_beams.add(EnhancedImageBeam(bird, angle_offset=110))
+                            for i in range(70, 111, 10):
+                                enhanced_image_beams.add(EnhancedImageBeam(bird, angle_offset=i))
 
                     if event.type == pg.KEYDOWN and event.key == pg.K_q:  # 強化ビーム発動キー "Q"
                         if mp.decrease(7): 
-                            Strong_Beam.add(StrongBeam(bird, offset=90))
-                            Strong_Beam.add(StrongBeam(bird, offset=80))
-                            Strong_Beam.add(StrongBeam(bird, offset=100))
+                            for i in range(90, 101, 10):
+                                Strong_Beam.add(StrongBeam(bird, offset=i))
                 screen.blit(bg_img, [0, 0])
                 boss_score = (score.value // 100) * 100
                 if boss_score != boss_span:
@@ -754,7 +750,7 @@ def main():
                     exps.add(Explosion(bomb, 50))  # 爆発エフェクト
                     score.value += 1  # 1点アップ
                 
-                for bomb in pg.sprite.groupcollide(bombs,Strong_Beam , True, False).keys():
+                for bomb in pg.sprite.groupcollide(bombs, Strong_Beam, True, False).keys():
                     exps.add(Explosion(bomb, 50))  # 爆発エフェクト
                     score.value += 1  # 1点アップ
 
@@ -774,7 +770,7 @@ def main():
                     elif boss.hp > 0:  # ボスの体力が0より大きかったら
                         boss.hp -= 5  # ボスの体力を10減らす
                 
-                for bomb in pg.sprite.groupcollide(bosses,Strong_Beam , None, False).keys():
+                for bomb in pg.sprite.groupcollide(bosses, Strong_Beam, None, False).keys():
                     if boss.hp <= 10:
                         exps.add(Explosion(boss, 50))  # 爆発エフェクト
                         score.value += 50  # 50点アップ
@@ -819,6 +815,7 @@ def main():
                 Beam.cooltime_update()
                 tmr += 1
                 clock.tick(50)
+
 
 if __name__ == "__main__":
     pg.init()
