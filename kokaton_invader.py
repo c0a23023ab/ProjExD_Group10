@@ -645,6 +645,7 @@ def main():
             mp = MP()  # MPインスタンスの作成
             boss_spown = False  # ボスの出現判定
             score_tmp = 0
+            e_cooltime = 0
             
             bird = Bird(3, (325, 650))
             bombs = pg.sprite.Group()
@@ -670,11 +671,12 @@ def main():
                     if event.type == pg.KEYDOWN and event.key == pg.K_SPACE and Beam.cooltime == 0:
                         beams.add(Beam(bird))
 
-                    if event.type == pg.KEYDOWN and event.key == pg.K_e:  # 強化ビーム発動キー "E"
+                    if event.type == pg.KEYDOWN and event.key == pg.K_e and e_cooltime <=0:  # 強化ビーム発動キー "E"
                         if mp.decrease(1): 
                             # 3方向にビームを発射
                             for i in range(80, 101, 10):
                                 BIG_beams.add(BIGBeam(bird, big=i))
+                            e_cooltime = 20
 
                     if event.type == pg.KEYDOWN and event.key == pg.K_w:  # 強化ビーム発動キー "W"
                         if mp.decrease(5): 
@@ -818,6 +820,8 @@ def main():
                 pg.display.update()
                 Beam.cooltime_update()
                 tmr += 1
+                if e_cooltime >0:
+                    e_cooltime -= 1
                 clock.tick(50)
 
 
