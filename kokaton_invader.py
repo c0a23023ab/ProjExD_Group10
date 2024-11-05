@@ -278,7 +278,7 @@ class Lv():
         レベルを時間経過によって変更して表示するクラス
         """
         if self.lv <5:
-            self.lv = tmr//500
+            self.lv = tmr//1000
         self.freq = Lv.lv_dic[self.lv]
         self.image = self.font.render(f"Lv: {self.lv}", 0, self.color)
         screen.blit(self.image, self.rect)
@@ -422,7 +422,7 @@ def main():
                 if boss_score != boss_span:  # 現在のスコア範囲とボスの出現スパンが一致するか
                     boss_spown = False
                     boss_span = boss_score
-
+                
                 if tmr%lv.freq == 0:  # 200フレームに1回，敵機を出現させる
                     emys.add(Enemy())
 
@@ -433,6 +433,7 @@ def main():
                 
                 if  score.value >= 100 and not boss_spown:
                     boss_spown = True
+                    emys = pg.sprite.Group()
                     bosses.add(Boss())
 
                 for boss in bosses:
