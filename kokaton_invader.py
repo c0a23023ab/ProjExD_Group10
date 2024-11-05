@@ -10,7 +10,7 @@ WIDTH = 650  # ゲームウィンドウの幅
 HEIGHT = 750 # ゲームウィンドウの高さ
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-        
+
 def check_bound(obj_rct: pg.Rect) -> tuple[bool, bool]:
     """
     オブジェクトが画面内or画面外を判定し，真理値タプルを返す関数
@@ -306,24 +306,24 @@ class Scorerank():
             with open(path, "r", encoding="utf-8") as rf:
                 txt = rf.read()
         except FileNotFoundError: #ファイルが見つからなかったら
-            txt = "0,0,0,0,0,0,0,0,0,0"
+            txt = "0,0,0,0,0,0,0,0,0,0" #10個の0点の文字列作成
             with open(path, "w", encoding="utf-8") as wf:
                 wf.write(txt)
-        self.ranklst = [int(i) for i in txt.split(",")] #int型に変換
+        self.ranklst = [int(i) for i in txt.split(",")] #int型のリストに変換
     
     def update(self, score:int):
         self.ranklst.append(score) #新しいスコアをリストに追加してソートする
         self.ranklst.sort(reverse=True)
         self.ranklst.pop(-1) #1つ増えた分減らす
         with open(self.path, "w", encoding="utf-8") as wf:
-                wf.write(','.join(map(str, self.ranklst)))
+                wf.write(','.join(map(str, self.ranklst))) #,で区切られた文字列に直して書き込む
         
 
 def main():
-    pg.display.set_caption("真！こうかとん無双")
+    pg.display.set_caption("こうかとんインベーダー")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     flag = "start" #画面推移の管理
-    rank = Scorerank("kokaton_invader_score.txt")
+    rank = Scorerank("kokaton_invader_score.txt") #ファイルパスを渡してランクの作成
     while True:
         if flag =="start":
             screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -343,9 +343,9 @@ def main():
                     break
                 if key_lst[pg.K_r]:
                     flag = "rank"
-                    break    
-        
-        if flag == "rank":
+                    break
+
+        if flag == "rank": #ランク画面なら
             screen = pg.display.set_mode((WIDTH, HEIGHT))
             txts = pg.sprite.Group()
             txts.add(Fontdraw("RANKING", 60, (WIDTH // 2, 80)))
