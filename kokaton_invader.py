@@ -202,11 +202,12 @@ class Bomb(pg.sprite.Sprite):
     """
     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
 
-    def __init__(self, emy: "Enemy", bird: Bird):
+    def __init__(self, emy: "Enemy",boss: "Boss", bird: Bird):
         """
         爆弾円Surfaceを生成する
         引数1 emy：爆弾を投下する敵機
-        引数2 bird：攻撃対象のこうかとん
+        引数2 boss：爆弾を投下するボス
+        引数3 bird：攻撃対象のこうかとん
         """
         super().__init__()
         rad = 10  # 爆弾円の半径：10
@@ -215,11 +216,24 @@ class Bomb(pg.sprite.Sprite):
         pg.draw.circle(self.image, color, (rad, rad), rad)
         self.image.set_colorkey((0, 0, 0))
         self.rect = self.image.get_rect()
+        # 爆弾を投下するbossから見た攻撃対象のbirdの方向を計算
+        if boss:
+            brad = 30
+            self.image = pg.Surface((2*brad, 2*brad))
+            color = random.choice(__class__.colors)  # 爆弾円の色：クラス変数からランダム選択
+            pg.draw.circle(self.image, color, (brad, brad), brad)
+            self.image.set_colorkey((0, 0, 0))
+            self.rect = self.image.get_rect()
+            self.vx, self.vy = calc_orientation(boss.rect, bird.rect)  
+            self.rect.centerx = boss.rect.centerx
+            self.rect.centery = boss.rect.centery+boss.rect.height//2
+            self.speed = 4
         # 爆弾を投下するemyから見た攻撃対象のbirdの方向を計算
-        self.vx, self.vy = calc_orientation(emy.rect, bird.rect)  
-        self.rect.centerx = emy.rect.centerx
-        self.rect.centery = emy.rect.centery+emy.rect.height//2
-        self.speed = 6
+        else:
+            self.vx, self.vy = calc_orientation(emy.rect, bird.rect)  
+            self.rect.centerx = emy.rect.centerx
+            self.rect.centery = emy.rect.centery+emy.rect.height//2
+            self.speed = 6
 
     def update(self):
         """
@@ -229,13 +243,14 @@ class Bomb(pg.sprite.Sprite):
         self.rect.move_ip(self.speed*self.vx, self.speed*self.vy)
         if check_bound(self.rect) != (True, True):
             self.kill()
+        
 
 
 class Explosion(pg.sprite.Sprite):
     """
     爆発に関するクラス
     """
-    def __init__(self, obj: "Bomb|Enemy", life: int):
+    def __init__(self, obj: "Bomb|Enemy|Boss", life: int):
         """
         爆弾が爆発するエフェクトを生成する
         引数1 obj：爆発するBombまたは敵機インスタンス
@@ -297,7 +312,7 @@ class Lv():
         レベルを時間経過によって変更して表示するクラス
         """
         if self.lv <5:
-            self.lv = tmr//500
+            self.lv = tmr//1000
         self.freq = Lv.lv_dic[self.lv]
         self.image = self.font.render(f"Lv: {self.lv}", 0, self.color)
         screen.blit(self.image, self.rect)
@@ -321,6 +336,48 @@ class Fontdraw(pg.sprite.Sprite):
 
     def update(self):
         pass
+
+class Boss(pg.sprite.Sprite):
+    """
+    ボスに関するクラス
+    """
+    imgs = [pg.transform.rotozoom(pg.image.load(f"fig/alien{3}.png"), 0, 2)]
+    
+    def __init__(self):
+        super().__init__()
+        self.image = random.choice(__class__.imgs)
+        self.rect = self.image.get_rect()
+        self.rect.center = WIDTH // 2, 0
+        self.vx, self.vy = 0, +3
+        self.bound = 100  # 停止位置
+        self.state = "down"  # 降下状態or停止状態
+        self.interval = random.randint(50, 300)  # 爆弾投下インターバル
+        self.hp = 100  # ボスの体力
+        
+
+    def update(self):
+        """
+        ボスを速度ベクトルself.vyに基づき移動（降下）させる
+        ランダムに決めた停止位置_boundまで降下したら，_stateを停止状態に変更する
+        """
+        if self.rect.centery > self.bound:
+            self.vy = 0
+            self.state = "stop"
+        self.rect.move_ip(self.vx, self.vy)
+
+
+    def draw_hp_bar(self, screen):
+        """
+        ボスのhpを表示する
+        """
+        bar_width = self.rect.width
+        bar_height = 10
+        fill_width = int(bar_width * (self.hp / 100))
+        
+        pg.draw.rect(screen, (255, 0, 0), (self.rect.left - 150, self.rect.top - 20, 3 * bar_width, bar_height))
+        # 背景の赤いバー
+        pg.draw.rect(screen, (0, 255, 0), (self.rect.left - 150, self.rect.top - 20, 3 * fill_width, bar_height))
+        # HPに応じた緑色のバー
 
 
 class Scorerank():
@@ -487,16 +544,21 @@ def main():
             bg_img = pg.image.load(f"fig/pg_bg.jpg")
             score = Score()
             lv = Lv()
+            boss_spown = False  # ボスの出現判定
+            boss_span = 0  # ボスの出現スパン
+            
             bird = Bird(3, (325, 650))
             bombs = pg.sprite.Group()
             beams = pg.sprite.Group()
             exps = pg.sprite.Group()
             emys = pg.sprite.Group()
+            bosses = pg.sprite.Group()
 
             tmr = 0
             commandcount = 0
             command1 = False
             clock = pg.time.Clock()
+
             while True:
                 key_lst = pg.key.get_pressed()
                 check_konami_command(key_lst)
@@ -508,23 +570,44 @@ def main():
                             beams.add(Beam(bird))  # ビームを追加
 
                 screen.blit(bg_img, (0, 0))
-
+                boss_score = (score.value // 100) * 100  # 現在のスコア範囲の計算
+                if boss_score != boss_span:  # 現在のスコア範囲とボスの出現スパンが一致するか
+                    boss_spown = False
+                    boss_span = boss_score
+                
                 if tmr%lv.freq == 0:
                     emys.add(Enemy())
 
                 for emy in emys:
                     if emy.state == "stop" and tmr%emy.interval == 0:
                         # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
-                        bombs.add(Bomb(emy, bird))
+                        bombs.add(Bomb(emy,None,bird))
+                
+                if  score.value >= 100 and not boss_spown:
+                    boss_spown = True
+                    bosses.add(Boss())
+
+                for boss in bosses:
+                    if boss.state == "stop" and tmr%boss.interval == 0:
+                        # ボスが停止状態に入ったら、intervalに応じて爆弾投下
+                        bombs.add(Bomb(emy,boss,bird))
 
                 for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
-                    exps.add(Explosion(emy, 100))  # 爆発エフェクト
+                    exps.add(Explosion(emy,100))  # 爆発エフェクト
                     score.value += 10  # 10点アップ
                     bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
                 for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
                     exps.add(Explosion(bomb, 50))  # 爆発エフェクト
                     score.value += 1  # 1点アップ
+
+                for boss in pg.sprite.groupcollide(bosses, beams, None, True).keys():
+                    if boss.hp <= 10:
+                        exps.add(Explosion(boss, 50))  # 爆発エフェクト
+                        score.value += 50  # 50点アップ
+                        boss.kill()
+                    elif boss.hp > 0:  # ボスの体力が0より大きかったら
+                        boss.hp -= 10  # ボスの体力を10減らす
 
                 if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
                     bird.change_img(8, screen) # こうかとん悲しみエフェクト
@@ -534,7 +617,12 @@ def main():
                     flag = "gameover"
                     rank.update(score.value)
                     break
-
+                
+                bosses.update()
+                bosses.draw(screen)
+                for boss in bosses:
+                    boss.update()
+                    boss.draw_hp_bar(screen)
                 bird.update(key_lst, screen)
                 beams.update()
                 beams.draw(screen)
