@@ -337,6 +337,103 @@ class Fontdraw(pg.sprite.Sprite):
     def update(self):
         pass
 
+class MP:
+    """MP（マジックポイント）を表示・管理するクラス"""
+    def __init__(self):
+        self.font = pg.font.Font(None, 40)
+        self.value = 0  # 初期MP値を0に設定
+
+    def increase(self, amount=1):
+        """MPを増やすメソッド"""
+        self.value += amount
+    
+    def decrease(self, amount=3):
+        """MPを減少させるメソッド"""
+        if self.value >= amount:
+            self.value -= amount
+            return True
+        return False
+
+    def update(self, screen):
+        """画面にMPを描画するメソッド"""
+        mp_surf = self.font.render(f"MP: {self.value}", True, (0, 0, 255))  
+        mp_rect = mp_surf.get_rect()
+        mp_rect.topleft = (0,670)  
+        screen.blit(mp_surf, mp_rect)
+
+class BIGBeam(pg.sprite.Sprite):
+    """強化ビーム1を管理するクラス"""
+    def __init__(self, bird, big):
+        super().__init__()
+        self.image = pg.image.load(f"fig/beam.png").convert_alpha()
+        self.image = pg.transform.scale(self.image, (50, 50))  
+        self.image = pg.transform.rotate(self.image, big) 
+        self.rect = self.image.get_rect()
+        self.vx = math.cos(math.radians(big))
+        self.vy = -math.sin(math.radians(big))
+        self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
+        self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
+        self.speed = 10
+
+
+    
+    def update(self):
+        """
+        ビームを速度ベクトルself.vx, self.vyに基づき移動させる
+        引数 screen：画面Surface
+        """
+        self.rect.move_ip(self.speed*self.vx, self.speed*self.vy)
+        if check_bound(self.rect) != (True, True):
+            self.kill()
+
+class EnhancedImageBeam(pg.sprite.Sprite):
+    """強化ビーム2を管理するクラス"""
+    def __init__(self, bird, angle_offset):
+        super().__init__()
+        self.image = pg.image.load(f"fig/beam.png").convert_alpha()
+        self.image = pg.transform.scale(self.image, (50, 50))  
+        self.image = pg.transform.rotate(self.image, angle_offset) 
+        self.rect = self.image.get_rect()
+        self.vx = math.cos(math.radians(angle_offset))
+        self.vy = -math.sin(math.radians(angle_offset))
+        self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
+        self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
+        self.speed = 10
+
+
+    
+    def update(self):
+        """
+        ビームを速度ベクトルself.vx, self.vyに基づき移動させる
+        引数 screen：画面Surface
+        """
+        self.rect.move_ip(self.speed*self.vx, self.speed*self.vy)
+        if check_bound(self.rect) != (True, True):
+            self.kill()
+
+class StrongBeam(pg.sprite.Sprite):
+    """MPを5消費して発射する、強力な大きいビーム"""
+    def __init__(self, bird,offset):
+        super().__init__()
+        self.image = pg.image.load(f"fig/beam.png").convert_alpha()
+        self.image = pg.transform.scale(self.image, (200,50))  
+        self.image = pg.transform.rotate(self.image, offset) 
+        self.rect = self.image.get_rect()
+        self.vx = math.cos(math.radians(offset))
+        self.vy = -math.sin(math.radians(offset))
+        self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
+        self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
+        self.speed = 10
+    
+    def update(self):
+        """
+        ビームを速度ベクトルself.vx, self.vyに基づき移動させる
+        引数 screen：画面Surface
+        """
+        self.rect.move_ip(self.speed*self.vx, self.speed*self.vy)
+        if check_bound(self.rect) != (True, True):
+            self.kill()
+
 class Boss(pg.sprite.Sprite):
     """
     ボスに関するクラス
@@ -544,20 +641,24 @@ def main():
             bg_img = pg.image.load(f"fig/pg_bg.jpg")
             score = Score()
             lv = Lv()
+            mp = MP()  # MPインスタンスの作成
             boss_spown = False  # ボスの出現判定
             boss_span = 0  # ボスの出現スパン
             
             bird = Bird(3, (325, 650))
             bombs = pg.sprite.Group()
             beams = pg.sprite.Group()
+            BIG_beams =pg.sprite.Group()
+            enhanced_image_beams = pg.sprite.Group()
+            Strong_Beam = pg.sprite.Group()
             exps = pg.sprite.Group()
             emys = pg.sprite.Group()
             bosses = pg.sprite.Group()
 
             tmr = 0
-            commandcount = 0
             command1 = False
             clock = pg.time.Clock()
+
 
             while True:
                 key_lst = pg.key.get_pressed()
@@ -566,15 +667,35 @@ def main():
                     if event.type == pg.QUIT:
                         return 0
                     if event.type == pg.KEYDOWN and event.key == pg.K_SPACE and Beam.cooltime == 0:
-                        if event.key == pg.K_SPACE:
-                            beams.add(Beam(bird))  # ビームを追加
+                        beams.add(Beam(bird))
 
-                screen.blit(bg_img, (0, 0))
-                boss_score = (score.value // 100) * 100  # 現在のスコア範囲の計算
-                if boss_score != boss_span:  # 現在のスコア範囲とボスの出現スパンが一致するか
+                    if event.type == pg.KEYDOWN and event.key == pg.K_e:  # 強化ビーム発動キー "E"
+                        if mp.decrease(1): 
+                            # 3方向にビームを発射
+                            BIG_beams.add(BIGBeam(bird, big=80))
+                            BIG_beams.add(BIGBeam(bird, big=90))
+                            BIG_beams.add(BIGBeam(bird, big=100))
+
+                    if event.type == pg.KEYDOWN and event.key == pg.K_w:  # 強化ビーム発動キー "W"
+                        if mp.decrease(5): 
+                            # 5方向にビームを発射
+                            enhanced_image_beams.add(EnhancedImageBeam(bird, angle_offset=70))
+                            enhanced_image_beams.add(EnhancedImageBeam(bird, angle_offset=80))
+                            enhanced_image_beams.add(EnhancedImageBeam(bird, angle_offset=90))
+                            enhanced_image_beams.add(EnhancedImageBeam(bird, angle_offset=100))
+                            enhanced_image_beams.add(EnhancedImageBeam(bird, angle_offset=110))
+
+                    if event.type == pg.KEYDOWN and event.key == pg.K_q:  # 強化ビーム発動キー "Q"
+                        if mp.decrease(7): 
+                            Strong_Beam.add(StrongBeam(bird, offset=90))
+                            Strong_Beam.add(StrongBeam(bird, offset=80))
+                            Strong_Beam.add(StrongBeam(bird, offset=100))
+                screen.blit(bg_img, [0, 0])
+                boss_score = (score.value // 100) * 100
+                if boss_score != boss_span:
                     boss_spown = False
                     boss_span = boss_score
-                
+
                 if tmr%lv.freq == 0:
                     emys.add(Enemy())
 
@@ -593,7 +714,23 @@ def main():
                         bombs.add(Bomb(emy,boss,bird))
 
                 for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
-                    exps.add(Explosion(emy,100))  # 爆発エフェクト
+                    exps.add(Explosion(emy, 100))  # 爆発エフェクト
+                    score.value += 10  # 10点アップ
+                    mp.increase(1)  # MPを1増加
+                    bird.change_img(6, screen)  # こうかとん喜びエフェクト
+
+                for emy in pg.sprite.groupcollide(emys, BIG_beams,  True, True).keys():
+                    exps.add(Explosion(emy, 100))  # 爆発エフェクト
+                    score.value += 10  # 10点アップ
+                    bird.change_img(6, screen)
+
+                for emy in pg.sprite.groupcollide(emys, enhanced_image_beams,  True, True).keys():
+                    exps.add(Explosion(emy, 100))  # 爆発エフェクト
+                    score.value += 10  # 10点アップ
+                    bird.change_img(6, screen)  # こうかとん喜びエフェクト
+
+                for emy in pg.sprite.groupcollide(emys, Strong_Beam,  True, False).keys():
+                    exps.add(Explosion(emy, 100))  # 爆発エフェクト
                     score.value += 10  # 10点アップ
                     bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
@@ -608,6 +745,42 @@ def main():
                         boss.kill()
                     elif boss.hp > 0:  # ボスの体力が0より大きかったら
                         boss.hp -= 10  # ボスの体力を10減らす
+
+                for bomb in pg.sprite.groupcollide(bombs, enhanced_image_beams, True, False).keys():
+                    exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+                    score.value += 1  # 1点アップ
+
+                for bomb in pg.sprite.groupcollide(bombs, BIG_beams, True, True).keys():
+                    exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+                    score.value += 1  # 1点アップ
+                
+                for bomb in pg.sprite.groupcollide(bombs,Strong_Beam , True, False).keys():
+                    exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+                    score.value += 1  # 1点アップ
+
+                for bomb in pg.sprite.groupcollide(bosses, enhanced_image_beams, None, False).keys():
+                    if boss.hp <= 10:
+                        exps.add(Explosion(boss, 50))  # 爆発エフェクト
+                        score.value += 50  # 50点アップ
+                        boss.kill()
+                    elif boss.hp > 0:  # ボスの体力が0より大きかったら
+                        boss.hp -= 0.5  # ボスの体力を10減らす
+
+                for bomb in pg.sprite.groupcollide(bosses, BIG_beams, None, True).keys():
+                    if boss.hp <= 10:
+                        exps.add(Explosion(boss, 50))  # 爆発エフェクト
+                        score.value += 50  # 50点アップ
+                        boss.kill()
+                    elif boss.hp > 0:  # ボスの体力が0より大きかったら
+                        boss.hp -= 5  # ボスの体力を10減らす
+                
+                for bomb in pg.sprite.groupcollide(bosses,Strong_Beam , None, False).keys():
+                    if boss.hp <= 10:
+                        exps.add(Explosion(boss, 50))  # 爆発エフェクト
+                        score.value += 50  # 50点アップ
+                        boss.kill()
+                    elif boss.hp > 0:  # ボスの体力が0より大きかったら
+                        boss.hp -= 0.8  # ボスの体力を10減らす
 
                 if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
                     bird.change_img(8, screen) # こうかとん悲しみエフェクト
@@ -626,6 +799,12 @@ def main():
                 bird.update(key_lst, screen)
                 beams.update()
                 beams.draw(screen)
+                BIG_beams.update()# 強化ビーム1の更新
+                BIG_beams.draw(screen)# 強化ビーム1の描画
+                enhanced_image_beams.update()  # 強化ビーム2の更新
+                enhanced_image_beams.draw(screen)  # 強化ビーム2の描画
+                Strong_Beam.update()
+                Strong_Beam.draw(screen)
                 emys.update()
                 emys.draw(screen)
                 bombs.update()
@@ -633,6 +812,8 @@ def main():
                 exps.update()
                 exps.draw(screen)
                 score.update(screen)
+                score.update(screen)  # スコアを更新
+                mp.update(screen)  # MPを更新
                 lv.update(screen, tmr)
                 pg.display.update()
                 Beam.cooltime_update()
