@@ -333,7 +333,7 @@ class Boss(pg.sprite.Sprite):
 
     def draw_hp_bar(self, screen):
         """
-        ボスの体力バーを表示するメソッド
+        ボスのhpを表示する
         """
         bar_width = self.rect.width
         bar_height = 10
@@ -398,7 +398,7 @@ def main():
             score = Score()
             lv = Lv()
             boss_spown = False  # ボスの出現判定
-            boss_span = 0
+            boss_span = 0  # ボスの出現スパン
             
             bird = Bird(3, (325, 650))
             bombs = pg.sprite.Group()
@@ -419,12 +419,11 @@ def main():
                         beams.add(Beam(bird))
                 screen.blit(bg_img, [0, 0])
                 boss_score = (score.value // 100) * 100  # 現在のスコア範囲の計算
-                if boss_score != boss_span:
+                if boss_score != boss_span:  # 現在のスコア範囲とボスの出現スパンが一致するか
                     boss_spown = False
                     boss_span = boss_score
 
-                # if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
-                if tmr%lv.freq == 0:
+                if tmr%lv.freq == 0:  # 200フレームに1回，敵機を出現させる
                     emys.add(Enemy())
 
                 for emy in emys:
