@@ -343,12 +343,6 @@ class Boss(pg.sprite.Sprite):
         # 背景の赤いバー
         pg.draw.rect(screen, (0, 255, 0), (self.rect.left - 150, self.rect.top - 20, 3 * fill_width, bar_height))
         # HPに応じた緑色のバー
-        
-        # HPバーの描画
-        max_bar_length = self.rect.width  # HPバーの最大長さはボスの幅に合わせる
-        bar_length = max_bar_length * (self.hp / 100)  # 現在のHPに基づくバーの長さ
-        bar_height = 5  # HPバーの高さ
-
 
 
 def main():
@@ -433,7 +427,6 @@ def main():
                 
                 if  score.value >= 100 and not boss_spown:
                     boss_spown = True
-                    emys = pg.sprite.Group()
                     bosses.add(Boss())
 
                 for boss in bosses:
