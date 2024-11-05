@@ -173,7 +173,7 @@ class Beam(pg.sprite.Sprite):
         self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
         self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
         self.speed = 10
-        Beam.cooltime = 30
+        Beam.cooltime = 20
 
     def update(self):
         """
@@ -644,7 +644,7 @@ def main():
             lv = Lv()
             mp = MP()  # MPインスタンスの作成
             boss_spown = False  # ボスの出現判定
-            boss_span = 0  # ボスの出現スパン
+            score_tmp = 0
             
             bird = Bird(3, (325, 650))
             bombs = pg.sprite.Group()
@@ -684,13 +684,9 @@ def main():
 
                     if event.type == pg.KEYDOWN and event.key == pg.K_q:  # 強化ビーム発動キー "Q"
                         if mp.decrease(7): 
-                            for i in range(90, 111, 10):
+                            for i in range(80, 101, 10):
                                 Strong_Beam.add(StrongBeam(bird, offset=i))
                 screen.blit(bg_img, [0, 0])
-                boss_score = (score.value // 100) * 100
-                if boss_score != boss_span:
-                    boss_spown = False
-                    boss_span = boss_score
 
                 if tmr%lv.freq == 0:
                     emys.add(Enemy())
@@ -700,7 +696,7 @@ def main():
                         # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
                         bombs.add(Bomb(emy,None,bird))
                 
-                if  score.value >= 100 and not boss_spown:
+                if  score.value >= (100 + score_tmp) and not boss_spown:
                     boss_spown = True
                     bosses.add(Boss())
 
@@ -712,7 +708,7 @@ def main():
                 for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
                     exps.add(Explosion(emy, 100))  # 爆発エフェクト
                     score.value += 10  # 10点アップ
-                    mp.increase(1)  # MPを1増加
+                    mp.increase(100)  # MPを1増加
                     bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
                 for emy in pg.sprite.groupcollide(emys, BIG_beams,  True, True).keys():
@@ -739,6 +735,8 @@ def main():
                         exps.add(Explosion(boss, 50))  # 爆発エフェクト
                         score.value += 50  # 50点アップ
                         boss.kill()
+                        score_tmp = score.value
+                        boss_spown = False
                     elif boss.hp > 0:  # ボスの体力が0より大きかったら
                         boss.hp -= 10  # ボスの体力を10減らす
 
@@ -759,6 +757,8 @@ def main():
                         exps.add(Explosion(boss, 50))  # 爆発エフェクト
                         score.value += 50  # 50点アップ
                         boss.kill()
+                        score_tmp = score.value
+                        boss_spown = False
                     elif boss.hp > 0:  # ボスの体力が0より大きかったら
                         boss.hp -= 0.5  # ボスの体力を10減らす
 
@@ -767,6 +767,8 @@ def main():
                         exps.add(Explosion(boss, 50))  # 爆発エフェクト
                         score.value += 50  # 50点アップ
                         boss.kill()
+                        score_tmp = score.value
+                        boss_spown = False
                     elif boss.hp > 0:  # ボスの体力が0より大きかったら
                         boss.hp -= 5  # ボスの体力を10減らす
                 
@@ -775,6 +777,8 @@ def main():
                         exps.add(Explosion(boss, 50))  # 爆発エフェクト
                         score.value += 50  # 50点アップ
                         boss.kill()
+                        score_tmp = score.value
+                        boss_spown = False
                     elif boss.hp > 0:  # ボスの体力が0より大きかったら
                         boss.hp -= 0.8  # ボスの体力を10減らす
 
