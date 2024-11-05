@@ -538,40 +538,40 @@ def main():
     rank = Scorerank("kokaton_invader_score.txt") #ファイルパスを渡してランクの作成
     while True:
         if flag =="start":
-            bg_img = pg.image.load(f"fig/pg_bg.jpg")
+            bg_img = pg.image.load(f"fig/pg_bg.jpg") #背景画像の読み込み
             txts = pg.sprite.Group()
-            title_text = Fontdraw(f"kokaton defender", 80, (WIDTH // 2, 200))
-            start_text = Fontdraw("start", 60, (WIDTH // 2, HEIGHT // 2))
-            rank_text = Fontdraw("ranking", 60, (WIDTH // 2, HEIGHT // 2 + 60))
+            title_text = Fontdraw(f"kokaton defender", 80, (WIDTH // 2, 200)) #タイトルテキストの作成
+            start_text = Fontdraw("start", 60, (WIDTH // 2, HEIGHT // 2)) #スタートテキストの作成
+            rank_text = Fontdraw("ranking", 60, (WIDTH // 2, HEIGHT // 2 + 60)) #ランキングテキストの作成
             txts.add(title_text)
             txts.add(start_text)
             txts.add(rank_text)
-            img = pg.image.load("fig/9.png")
-            img = pg.transform.rotozoom(img, 0, 1.0)
+            img = pg.image.load("fig/9.png") #選択用画像の読み込み
+            img = pg.transform.rotozoom(img, 0, 1.0) #画像サイズの設定
             img_rect = img.get_rect()
             selection_index = 0
-            options = [start_text, rank_text]
+            options = [start_text, rank_text] #メニュー項目のオプションリストの設定
             while True:
-                screen.blit(bg_img, [0, 0])
+                screen.blit(bg_img, [0, 0]) #背景画像の描写
                 txts.draw(screen)
-                selected_text = options[selection_index % len(options)]
+                selected_text = options[selection_index % len(options)] #現在の選択項目に画像を配置
                 img_rect.right = selected_text.rect.left - 10
                 img_rect.centery = selected_text.rect.centery
                 screen.blit(img, img_rect)
-                pg.display.update()
+                pg.display.update() #画像を更新
                 for event in pg.event.get():
                     if event.type == pg.QUIT:
                         return 0
                     elif event.type == pg.KEYDOWN:
                         if event.key == pg.K_UP:
-                            selection_index = (selection_index - 1) % len(options)
+                            selection_index = (selection_index - 1) % len(options) #上矢印キーで選択を上に移動
                         elif event.key == pg.K_DOWN:
-                            selection_index = (selection_index + 1) % len(options)
+                            selection_index = (selection_index + 1) % len(options) #下矢印キーで選択を上に移動
                         elif event.key == pg.K_RETURN:
                             if selection_index % len(options)== 0:
-                                flag = "game"
+                                flag = "game" #インデックスが0の時ゲーム開始
                             elif selection_index % len(options) == 1:
-                                flag = "rank"
+                                flag = "rank" #インデックスが1の時ランキング表示
                             break
                 if flag == "game" or flag == "rank":
                     break
@@ -598,24 +598,24 @@ def main():
                     break 
 
         if flag =="gameover":
-            bg_img = pg.image.load(f"fig/pg_bg.jpg")
+            bg_img = pg.image.load(f"fig/pg_bg.jpg") #背景画像の読み込み
             txts = pg.sprite.Group()
-            txts.add(Fontdraw(f"HiScore : {rank.ranklst[0]}", 50, (WIDTH // 2, 250)))
+            txts.add(Fontdraw(f"HiScore : {rank.ranklst[0]}", 50, (WIDTH // 2, 250))) 
             score_text = Fontdraw(f"Score:{score.value}", 80, (WIDTH // 2, 200))
-            start_text = Fontdraw("start", 60, (WIDTH // 2, HEIGHT // 2))
-            home_text = Fontdraw("home", 60, (WIDTH // 2, HEIGHT // 2 + 60))
+            start_text = Fontdraw("start", 60, (WIDTH // 2, HEIGHT // 2)) #スタートテキストの作成
+            home_text = Fontdraw("home", 60, (WIDTH // 2, HEIGHT // 2 + 60)) #ホームテキストの作成
             txts.add(score_text)
             txts.add(start_text)
             txts.add(home_text)
-            img = pg.image.load("fig/9.png")
+            img = pg.image.load("fig/9.png") #選択用画像の読み込み
             img = pg.transform.rotozoom(img, 0, 1.0)
             img_rect = img.get_rect()
             selection_index = 0
-            options = [start_text, home_text]
+            options = [start_text, home_text] #メニュー項目のオプションリストの設定
             while True:
                 screen.blit(bg_img, [0, 0])
                 txts.draw(screen)
-                selected_text = options[selection_index % len(options)]
+                selected_text = options[selection_index % len(options)] #現在の選択項目に画像を配置
                 img_rect.right = selected_text.rect.left - 10
                 img_rect.centery = selected_text.rect.centery
                 screen.blit(img, img_rect)
@@ -625,14 +625,14 @@ def main():
                         return 0
                     elif event.type == pg.KEYDOWN:
                         if event.key == pg.K_UP:
-                            selection_index = (selection_index - 1) % len(options)
+                            selection_index = (selection_index - 1) % len(options) #上矢印キーで選択を上に移動
                         elif event.key == pg.K_DOWN:
-                            selection_index = (selection_index + 1) % len(options)
+                            selection_index = (selection_index + 1) % len(options) #下矢印キーで選択を上に移動
                         elif event.key == pg.K_RETURN:
                             if selection_index % len(options)== 0:
-                                flag = "game"
+                                flag = "game" #インデックスが0の時ゲーム開始
                             elif selection_index % len(options) == 1:
-                                flag = "start"
+                                flag = "start" #インデックスが1の時スタート画面に戻る
                             break
                 if flag == "game" or flag == "start":
                     break
@@ -684,7 +684,7 @@ def main():
 
                     if event.type == pg.KEYDOWN and event.key == pg.K_q:  # 強化ビーム発動キー "Q"
                         if mp.decrease(7): 
-                            for i in range(90, 101, 10):
+                            for i in range(90, 111, 10):
                                 Strong_Beam.add(StrongBeam(bird, offset=i))
                 screen.blit(bg_img, [0, 0])
                 boss_score = (score.value // 100) * 100
