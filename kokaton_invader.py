@@ -274,7 +274,7 @@ class Fontdraw(pg.sprite.Sprite):
     """
     文字を指定の位置に表示させるクラス
     """
-    def __init__(self, txt: str, size: int, centerxy: tuple[int, int]):
+    def __init__(self, txt: str, size: int, centerxy: tuple[int, int], color=(0, 0, 255)):
         """
         文字をを生成する
         引数1 txt：表示させる文字列
@@ -283,7 +283,7 @@ class Fontdraw(pg.sprite.Sprite):
         """
         super().__init__()
         font = pg.font.Font(None, size)
-        self.image = font.render(txt , True, (255, 255, 255))
+        self.image = font.render(txt , True, color)
         self.rect = self.image.get_rect()
         self.rect.centerx, self.rect.centery = centerxy
 
@@ -326,32 +326,54 @@ def main():
     rank = Scorerank("kokaton_invader_score.txt") #ファイルパスを渡してランクの作成
     while True:
         if flag =="start":
-            screen = pg.display.set_mode((WIDTH, HEIGHT))
+            bg_img = pg.image.load(f"fig/pg_bg.jpg")
             txts = pg.sprite.Group()
-            txts.add(Fontdraw(f"kokaton defender", 80, (WIDTH // 2, 200)))
-            txts.add(Fontdraw("start [s]", 60, (WIDTH // 2, HEIGHT // 2)))
-            txts.add(Fontdraw("ranking [r]", 60, (WIDTH // 2, HEIGHT // 2 + 60)))
-            txts.draw(screen)
-            pg.display.update()
+            title_text = Fontdraw(f"kokaton defender", 80, (WIDTH // 2, 200))
+            start_text = Fontdraw("start", 60, (WIDTH // 2, HEIGHT // 2))
+            rank_text = Fontdraw("ranking", 60, (WIDTH // 2, HEIGHT // 2 + 60))
+            txts.add(title_text)
+            txts.add(start_text)
+            txts.add(rank_text)
+            img = pg.image.load("fig/9.png")
+            img = pg.transform.rotozoom(img, 0, 1.0)
+            img_rect = img.get_rect()
+            selection_index = 0
+            options = [start_text, rank_text]
             while True:
-                key_lst = pg.key.get_pressed()
+                screen.blit(bg_img, [0, 0])
+                txts.draw(screen)
+                selected_text = options[selection_index % len(options)]
+                img_rect.right = selected_text.rect.left - 10
+                img_rect.centery = selected_text.rect.centery
+                screen.blit(img, img_rect)
+                pg.display.update()
                 for event in pg.event.get():
                     if event.type == pg.QUIT:
                         return 0
-                if key_lst[pg.K_s]:
-                    flag = "game"
+                    elif event.type == pg.KEYDOWN:
+                        if event.key == pg.K_UP:
+                            selection_index = (selection_index - 1) % len(options)
+                        elif event.key == pg.K_DOWN:
+                            selection_index = (selection_index + 1) % len(options)
+                        elif event.key == pg.K_RETURN:
+                            if selection_index % len(options)== 0:
+                                flag = "game"
+                            elif selection_index % len(options) == 1:
+                                flag = "rank"
+                            break
+                if flag == "game" or flag == "rank":
                     break
-                if key_lst[pg.K_r]:
-                    flag = "rank"
-                    break
-
+            continue
+        
         if flag == "rank": #ランク画面なら
             screen = pg.display.set_mode((WIDTH, HEIGHT))
+            bg_img = pg.image.load(f"fig/pg_bg.jpg")
             txts = pg.sprite.Group()
             txts.add(Fontdraw("RANKING", 60, (WIDTH // 2, 80)))
-            txts.add(Fontdraw("home [h]", 60, (WIDTH // 2, 680)))
+            txts.add(Fontdraw("home[h]", 60, (WIDTH // 2, 680)))
             for i, score in enumerate(rank.ranklst): #ランキングの表示
                 txts.add(Fontdraw(f"No.{i+1} : {score}", 50, (WIDTH // 2, 150 + i*50 )))
+            screen.blit(bg_img, [0, 0])
             txts.draw(screen)
             pg.display.update()
             while True:
@@ -364,32 +386,49 @@ def main():
                     break 
 
         if flag =="gameover":
-            screen = pg.display.set_mode((WIDTH, HEIGHT))
+            bg_img = pg.image.load(f"fig/pg_bg.jpg")
             txts = pg.sprite.Group()
-            txts.add(Fontdraw(f"Score : {score.value}", 80, (WIDTH // 2, 200))) #スコアとハイスコアの表示
             txts.add(Fontdraw(f"HiScore : {rank.ranklst[0]}", 50, (WIDTH // 2, 250)))
-            txts.add(Fontdraw("start [s]", 60, (WIDTH // 2, HEIGHT // 2)))
-            txts.add(Fontdraw("home [h]", 60, (WIDTH // 2, HEIGHT // 2 + 60)))
-            txts.draw(screen)
-            pg.display.update()
+            score_text = Fontdraw(f"Score:{score.value}", 80, (WIDTH // 2, 200))
+            start_text = Fontdraw("start", 60, (WIDTH // 2, HEIGHT // 2))
+            home_text = Fontdraw("home", 60, (WIDTH // 2, HEIGHT // 2 + 60))
+            txts.add(score_text)
+            txts.add(start_text)
+            txts.add(home_text)
+            img = pg.image.load("fig/9.png")
+            img = pg.transform.rotozoom(img, 0, 1.0)
+            img_rect = img.get_rect()
+            selection_index = 0
+            options = [start_text, home_text]
             while True:
-                key_lst = pg.key.get_pressed()
+                screen.blit(bg_img, [0, 0])
+                txts.draw(screen)
+                selected_text = options[selection_index % len(options)]
+                img_rect.right = selected_text.rect.left - 10
+                img_rect.centery = selected_text.rect.centery
+                screen.blit(img, img_rect)
+                pg.display.update()
                 for event in pg.event.get():
                     if event.type == pg.QUIT:
                         return 0
-                if key_lst[pg.K_s]:
-                    flag = "game"
-                    break   
-                if key_lst[pg.K_h]:
-                    flag = "start"
+                    elif event.type == pg.KEYDOWN:
+                        if event.key == pg.K_UP:
+                            selection_index = (selection_index - 1) % len(options)
+                        elif event.key == pg.K_DOWN:
+                            selection_index = (selection_index + 1) % len(options)
+                        elif event.key == pg.K_RETURN:
+                            if selection_index % len(options)== 0:
+                                flag = "game"
+                            elif selection_index % len(options) == 1:
+                                flag = "start"
+                            break
+                if flag == "game" or flag == "start":
                     break
-        
+            continue
         if flag == "game":
-            screen = pg.display.set_mode((WIDTH, HEIGHT))
             bg_img = pg.image.load(f"fig/pg_bg.jpg")
             score = Score()
             lv = Lv()
-            
             bird = Bird(3, (325, 650))
             bombs = pg.sprite.Group()
             beams = pg.sprite.Group()
@@ -449,7 +488,6 @@ def main():
                 Beam.cooltime_update()
                 tmr += 1
                 clock.tick(50)
-
 
 if __name__ == "__main__":
     pg.init()
