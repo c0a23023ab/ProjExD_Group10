@@ -5,6 +5,17 @@ import sys
 import time
 import pygame as pg
 
+KONAMI_COMMAND = [
+    pg.K_UP, pg.K_UP, pg.K_DOWN, pg.K_DOWN, 
+    pg.K_LEFT, pg.K_RIGHT, pg.K_LEFT, pg.K_RIGHT,
+    pg.K_b, pg.K_a
+]
+TIMEOUT = 200  # タイムアウト間隔
+
+# 現在の入力状態を追跡する変数
+command_index = 0  # 現在のコマンドの位置
+tmr = 0  # タイマー
+command1 = False  # コマンドが成功したかのフラグ
 
 WIDTH = 650  # ゲームウィンドウの幅
 HEIGHT = 750 # ゲームウィンドウの高さ
@@ -46,6 +57,13 @@ class Bird(pg.sprite.Sprite):
         pg.K_RIGHT: (+1, 0),
     }
 
+    command_mode = {
+        pg.K_UP: (0, -1),
+        pg.K_DOWN: (0, +1),
+        pg.K_LEFT: (-1, 0),
+        pg.K_RIGHT: (+1, 0),
+    }
+
     def __init__(self, num: int, xy: tuple[int, int]):
         """
         こうかとん画像Surfaceを生成する
@@ -57,14 +75,21 @@ class Bird(pg.sprite.Sprite):
         img = pg.transform.flip(img0, True, False)  # デフォルトのこうかとん
         self.imgs = {
             (+1, 0): img,  # 右
+            (+1, -1): pg.transform.rotozoom(img, 45, 1.0),  # 右上
+            (0, -1): pg.transform.rotozoom(img, 90, 1.0),  # 上
+            (-1, -1): pg.transform.rotozoom(img0, -45, 1.0),  # 左上
             (-1, 0): img0,  # 左
+            (-1, +1): pg.transform.rotozoom(img0, 45, 1.0),  # 左下
+            (0, +1): pg.transform.rotozoom(img, -90, 1.0),  # 下
+            (+1, +1): pg.transform.rotozoom(img, -45, 1.0),  # 右下
         }
         self.dire = (+1, 0)
         self.image = self.imgs[self.dire]
         self.rect = self.image.get_rect()
         self.rect.center = xy
         self.speed = 10
-    
+        self.state = "nomal"
+        self.hyper_life = 0
     def change_img(self, num: int, screen: pg.Surface):
         """
         こうかとん画像を切り替え，画面に転送する
@@ -75,16 +100,23 @@ class Bird(pg.sprite.Sprite):
         screen.blit(self.image, self.rect)
 
     def update(self, key_lst: list[bool], screen: pg.Surface):
+        global command1
         """
         押下キーに応じてこうかとんを移動させる
         引数1 key_lst：押下キーの真理値リスト
         引数2 screen：画面Surface
         """
         sum_mv = [0, 0]
-        for k, mv in __class__.delta.items():
-            if key_lst[k]:
-                sum_mv[0] += mv[0]
-                sum_mv[1] += mv[1]
+        if command1 == False:
+            for k, mv in __class__.delta.items():
+                if key_lst[k]:
+                    sum_mv[0] += mv[0]
+                    sum_mv[1] += mv[1]
+        if command1 == True:
+            for k, mv in __class__.command_mode.items():
+                if key_lst[k]:
+                    sum_mv[0] += mv[0]
+                    sum_mv[1] += mv[1]
         self.rect.move_ip(self.speed*sum_mv[0], self.speed*sum_mv[1])
         if check_bound(self.rect) != (True, True):
             self.rect.move_ip(-self.speed*sum_mv[0], -self.speed*sum_mv[1])
@@ -267,6 +299,26 @@ class Lv():
         self.freq = Lv.lv_dic[self.lv]
         self.image = self.font.render(f"Lv: {self.lv}", 0, self.color)
         screen.blit(self.image, self.rect)
+        
+class NeoBeam:
+
+    def __init__(self, bird: Bird, num: int):
+        self.bird = bird
+        self.num = num
+
+    def gen_beams(self):
+        beams = []
+        if self.num == 1:
+            angles = [0]
+        else:
+            calc = int(100 / (self.num - 1))
+            angles = list(range(-50, 51, calc))
+        for angle in angles:
+            beam = Beam(self.bird)
+            beam.vx = math.cos(math.radians(angle))
+            beam.vy = -math.sin(math.radians(angle))
+            beams.append(beam)
+        return beams
 
 class Fontdraw(pg.sprite.Sprite):
     """
@@ -287,8 +339,32 @@ class Fontdraw(pg.sprite.Sprite):
     def update(self):
         pass
 
+def check_konami_command(key_lst):
+    """
+    コマンドが入力されたかを確認する関数
+    引数 key_lst:現在のキー入力状態リスト
+    """
+    global command_index, tmr, command1
+    if command1 == True:
+        pass
+    if command1 == False:
+        # 指定したコマンドのキーが押されているかを確認
+        if key_lst[KONAMI_COMMAND[command_index]]:
+            command_index += 1  # 次のコマンドに進む
+            print(f"Command step: {command_index}")
+            tmr = 0  # タイマーをリセット
+
+            # コマンドがすべて成功した場合
+            if command_index == len(KONAMI_COMMAND):
+                command1 = True
+                command_index = 0  # コマンドの位置をリセット
+                print("Konami Command Activated!")
+        elif tmr >= TIMEOUT:  # タイムアウト条件
+            command_index = 0  # コマンドの位置をリセット
+
 
 def main():
+    global command1
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     flag = "start" #画面推移の管理
@@ -342,16 +418,50 @@ def main():
             emys = pg.sprite.Group()
 
             tmr = 0
+            commandcount = 0
+            command1 = False
             clock = pg.time.Clock()
             while True:
                 key_lst = pg.key.get_pressed()
+                check_konami_command(key_lst)
                 for event in pg.event.get():
                     if event.type == pg.QUIT:
                         return 0
                     if event.type == pg.KEYDOWN and event.key == pg.K_SPACE and Beam.cooltime == 0:
-                        beams.add(Beam(bird))
-                screen.blit(bg_img, [0, 0])
-
+                        if event.key == pg.K_SPACE:
+                            if key_lst[pg.K_LSHIFT]:
+                                num_beams = 5
+                                neo_beam = NeoBeam(bird, num_beams)
+                                beams.add(neo_beam.gen_beams())
+                            else:
+                                beams.add(Beam(bird))  # ビームを追加
+                screen.blit(bg_img, (0, 0))
+                # #コナミコマンド
+                # if key_lst[pg.K_UP] and commandcount == 0:
+                #     commandcount = 1
+                #     print(commandcount)
+                # if key_lst[pg.K_DOWN] and commandcount == 1:
+                #     commandcount = 2
+                #     print(commandcount)
+                # if key_lst[pg.K_LEFT] and commandcount == 2:
+                #     commandcount = 3
+                #     print("left")
+                # if key_lst[pg.K_RIGHT] and commandcount == 3:
+                #     commandcount = 4
+                #     print("right")
+                # if key_lst[pg.K_b] and commandcount == 4:
+                #     commandcount = 5
+                #     print("b")
+                # if key_lst[pg.K_a] and commandcount == 5:
+                #     commandcount = 6
+                #     print("a")
+                # if tmr%200 == 0:
+                #     commandcount = 0    
+                # if commandcount == 6:
+                #     bird.change_img(7, screen)
+                #     command1 = True
+                #     commandcount = 0
+                
                 # if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
                 if tmr%lv.freq == 0:
                     emys.add(Enemy())
