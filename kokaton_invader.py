@@ -708,7 +708,7 @@ def main():
                 for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
                     exps.add(Explosion(emy, 100))  # 爆発エフェクト
                     score.value += 10  # 10点アップ
-                    mp.increase(100)  # MPを1増加
+                    mp.increase(1)  # MPを1増加
                     bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
                 for emy in pg.sprite.groupcollide(emys, BIG_beams,  True, True).keys():
