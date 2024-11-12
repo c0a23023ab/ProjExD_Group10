@@ -571,7 +571,6 @@ class Scorerank():
 
 def main():
     global command1
-    pg.display.set_caption("真！こうかとん無双")
     pg.display.set_caption("こうかとんインベーダー")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     flag = "start" #画面推移の管理
@@ -581,7 +580,7 @@ def main():
         if flag =="start":
             bg_img = pg.image.load(f"fig/pg_bg.jpg") #背景画像の読み込み
             txts = pg.sprite.Group()
-            title_text = Fontdraw(f"kokaton defender", 80, (WIDTH // 2, 200)) #タイトルテキストの作成
+            title_text = Fontdraw(f"kokaton invader", 80, (WIDTH // 2, 200)) #タイトルテキストの作成
             start_text = Fontdraw("start", 60, (WIDTH // 2, HEIGHT // 2)) #スタートテキストの作成
             rank_text = Fontdraw("ranking", 60, (WIDTH // 2, HEIGHT // 2 + 60)) #ランキングテキストの作成
             name_text = Fontdraw(f"Name : {txt_give}", 60, (WIDTH // 2, HEIGHT // 2 -100))
