@@ -4,6 +4,7 @@ import random
 import sys
 import time
 import pygame as pg
+from typing import Union
 
 
 KONAMI_COMMAND = [
@@ -22,6 +23,33 @@ WIDTH = 650  # ゲームウィンドウの幅
 HEIGHT = 750 # ゲームウィンドウの高さ
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+
+###この関数は引用
+def jud_key(key: int) -> Union[str, None]:
+    """
+    入力されたキーに対応する文字を返す関数
+    扱えないキーが入力された場合はNoneを返す
+    Pygameのキーは定数(整数)が割り当てられているので引数はint型になる
+    扱える文字は以下の通り
+    ・アルファベット(A-Z, a-z)
+    ・数字(0-9)
+    ・半角スペース
+    """
+    if (key >= pg.K_a)and(key <= pg.K_z):  # アルファベットが入力された？
+        if pg.key.get_mods() & pg.KMOD_SHIFT:  # Shiftキーが入力された？
+            return pg.key.name(key).upper()  # 大文字
+        else:
+            return pg.key.name(key)  # 小文字
+    elif ((key >= pg.K_0)and(key <= pg.K_9)):  # 0-9が入力された？
+        if pg.key.get_mods() & pg.KMOD_SHIFT:  # Shiftキーが入力された？
+            return None
+        else:
+            return pg.key.name(key)
+    elif key == pg.K_SPACE:  # スペースが入力された？
+        return ' '
+    else:  # 例外？
+        return None
+    
 
 def check_bound(obj_rct: pg.Rect) -> tuple[bool, bool]:
     """
@@ -514,19 +542,31 @@ class Scorerank():
         self.path = path
         try:
             with open(path, "r", encoding="utf-8") as rf:
-                txt = rf.read()
+                score = rf.readline()
+                name = rf.readline()
         except FileNotFoundError: #ファイルが見つからなかったら
-            txt = "0,0,0,0,0,0,0,0,0,0" #10個の0点の文字列作成
+            txt = "0,0,0,0,0,0,0,0,0,0\nNoName,NoName,NoName,NoName,NoName,NoName,NoName,NoName,NoName,NoName" #10個の0点の文字列作成
             with open(path, "w", encoding="utf-8") as wf:
                 wf.write(txt)
-        self.ranklst = [int(i) for i in txt.split(",")] #int型のリストに変換
-    
-    def update(self, score:int):
+            with open(path, "r", encoding="utf-8") as rf:
+                score = rf.readline()
+                name = rf.readline()
+        self.ranklst = [int(i) for i in score.split(",")] #int型のリストに変換
+        self.namelst = name.split(",")
+
+    def update(self, score:int, name:str):
         self.ranklst.append(score) #新しいスコアをリストに追加してソートする
-        self.ranklst.sort(reverse=True)
+        self.namelst.append(name)
+        zip_lst = zip(self.ranklst, self.namelst)
+        zip_lst = sorted(zip_lst, reverse=True)
+        self.ranklst, self.namelst = zip(*zip_lst)
+        self.ranklst = list(self.ranklst)
+        self.namelst = list(self.namelst)
         self.ranklst.pop(-1) #1つ増えた分減らす
+        self.namelst.pop(-1)
         with open(self.path, "w", encoding="utf-8") as wf:
                 wf.write(','.join(map(str, self.ranklst))) #,で区切られた文字列に直して書き込む
+                wf.write("\n" + ','.join(self.namelst))
         
 
 def main():
@@ -536,6 +576,7 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     flag = "start" #画面推移の管理
     rank = Scorerank("kokaton_invader_score.txt") #ファイルパスを渡してランクの作成
+    txt_give = "NoName"
     while True:
         if flag =="start":
             bg_img = pg.image.load(f"fig/pg_bg.jpg") #背景画像の読み込み
@@ -543,9 +584,11 @@ def main():
             title_text = Fontdraw(f"kokaton defender", 80, (WIDTH // 2, 200)) #タイトルテキストの作成
             start_text = Fontdraw("start", 60, (WIDTH // 2, HEIGHT // 2)) #スタートテキストの作成
             rank_text = Fontdraw("ranking", 60, (WIDTH // 2, HEIGHT // 2 + 60)) #ランキングテキストの作成
+            name_text = Fontdraw(f"Name : {txt_give}", 60, (WIDTH // 2, HEIGHT // 2 -100))
             txts.add(title_text)
             txts.add(start_text)
             txts.add(rank_text)
+            txts.add(name_text)
             img = pg.image.load("fig/9.png") #選択用画像の読み込み
             img = pg.transform.rotozoom(img, 0, 1.0) #画像サイズの設定
             img_rect = img.get_rect()
@@ -573,6 +616,35 @@ def main():
                             elif selection_index % len(options) == 1:
                                 flag = "rank" #インデックスが1の時ランキング表示
                             break
+                key_lst = pg.key.get_pressed()
+                if key_lst[pg.K_LSHIFT]:
+                    txt_words = []
+                    txt_tmp = ""
+                    is_txts = True
+                    while is_txts:
+                        key_lst = pg.key.get_pressed()
+                        for event in pg.event.get():
+                            ###囲われた部分は引用###
+                            if event.type == pg.QUIT:
+                                return 0
+                            if event.type == pg.KEYDOWN:  # キー入力検知？
+                                if event.key == pg.K_RETURN:  # Enter押下？
+                                    txt_give = ''.join(txt_words)  # 文字列に直して保持
+                                    is_txts = False
+                                    break
+                                elif event.key == pg.K_BACKSPACE:  # BackSpace押下？
+                                    if not len(txt_words) == 0:  # 保持している文字が存在するか？
+                                        txt_words.pop()  # 最後の文字を取り出す(削除)
+                                elif event.type == pg.QUIT:
+                                    return 0
+                                else:  # 上記以外のキーが押された時
+                                    txt_tmp = jud_key(event.key)
+                                    if not txt_tmp == None:  # 入力可能な文字？
+                                        txt_words.append(txt_tmp)  # 入力可能であれば保持する
+                            ######################
+                    else:
+                        break
+
                 if flag == "game" or flag == "rank":
                     break
             continue
@@ -584,7 +656,7 @@ def main():
             txts.add(Fontdraw("RANKING", 60, (WIDTH // 2, 80)))
             txts.add(Fontdraw("home[h]", 60, (WIDTH // 2, 680)))
             for i, score in enumerate(rank.ranklst): #ランキングの表示
-                txts.add(Fontdraw(f"No.{i+1} : {score}", 50, (WIDTH // 2, 150 + i*50 )))
+                txts.add(Fontdraw(f"No.{i+1} : {rank.namelst[i]} {score}", 50, (WIDTH // 2, 150 + i*50 )))
             screen.blit(bg_img, [0, 0])
             txts.draw(screen)
             pg.display.update()
@@ -790,7 +862,7 @@ def main():
                     pg.display.update()
                     time.sleep(2)
                     flag = "gameover"
-                    rank.update(score.value)
+                    rank.update(score.value, txt_give)
                     break
                 
                 bosses.update()
